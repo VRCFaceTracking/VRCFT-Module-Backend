@@ -57,6 +57,19 @@ async function putRating(event) {
   const body = JSON.parse(event.body);
   const {UserId, ModuleId, Rating} = body;
 
+  const data = await dynamoDb.get({
+    TableName: 'VRCFT-Module-Entries',
+    Key: {
+      ModuleId,
+    }
+  }).promise();
+  if (!data.Item) {
+    return {
+      statusCode: 404,
+      body: 'Not Found',
+    }
+  }
+
   // Update or create the rating entry in VRCFT-Module-Ratings
   await dynamoDb.put({
     TableName: 'VRCFT-Module-Ratings',
