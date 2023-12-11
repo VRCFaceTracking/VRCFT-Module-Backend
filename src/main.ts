@@ -1,4 +1,4 @@
-const AWS = require('aws-sdk');
+import AWS from "aws-sdk";
 
 AWS.config.update({region: 'us-east-1'});
 const dynamoDb = new AWS.DynamoDB.DocumentClient();
@@ -44,6 +44,7 @@ async function getModuleList() {
   // Remove the "RatingSum" attribute from the data
   data.Items.forEach((item) => {
     delete item.RatingSum;
+    delete item.OwnerId
   });
 
   // Returns the data as a JSON object
@@ -119,19 +120,29 @@ async function incrementDownloads(event) {
   const {ModuleId} = body;
 
   // Get the module entry from VRCFT-Module-Entries
-  await dynamoDb.update({
-    TableName: 'VRCFT-Module-Entries',
-    Key: {
-      ModuleId,
-    },
-    UpdateExpression: 'ADD Downloads :one',
-    ExpressionAttributeValues: {
-      ':one': 1,
-    }
-  }).promise();
+  try {
+    await dynamoDb.update({
+      TableName: 'VRCFT-Module-Entries',
+      Key: {
+        ModuleId,
+      },
+      UpdateExpression: 'ADD Downloads :one',
+      ConditionExpression: 'attribute_exists(ModuleId)',
+      ExpressionAttributeValues: {
+        ':one': 1,
+      }
+    }).promise();
 
-  return {
-    statusCode: 200,
-    body: 'OK',
+    return {
+      statusCode: 200,
+      body: 'OK',
+    }
   }
+  catch(e) {
+    return {
+      statusCode: 404,
+      body: 'Module not found'
+    }
+  }
+
 }
